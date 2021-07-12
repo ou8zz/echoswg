@@ -22,7 +22,7 @@ var (
   uni                *ut.UniversalTranslator
   validate           *validator.Validate
   trans              ut.Translator
-  DefaultRespHandler func(data interface{}, err error) interface{}
+  DefaultRespHandler func(data ...interface{}) interface{}
 )
 
 func init() {
@@ -84,12 +84,13 @@ func BuildEchoHandler(fullRequestPath string, config HandlerConfig, handlers []i
       }
 
       if i == len(handlers)-1 && DefaultRespHandler != nil {
-        switch len(out) {
-        case 0:
-          return logError(c.JSON(http.StatusOK, DefaultRespHandler(nil, err)))
-        case 1:
-          return logError(c.JSON(http.StatusOK, DefaultRespHandler(out[0].Interface(), err)))
+        paramIndex := len(out) + 1
+        paramInterface := make([]interface{}, paramIndex)
+        for n, v := range out {
+          paramInterface[n] = v.Interface()
         }
+        paramInterface[paramIndex-1] = err
+        return logError(c.JSON(http.StatusOK, DefaultRespHandler(paramInterface...)))
       }
     }
     if len(out) > 1 {

@@ -1,6 +1,6 @@
-module github.com/yb7/echoswg
+module github.com/ou8zz/echoswg
 
-go 1.12
+go 1.15
 
 require (
 	github.com/go-playground/locales v0.13.0

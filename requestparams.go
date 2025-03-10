@@ -12,17 +12,20 @@ import (
 
 // RequestParam struct
 type RequestParam struct {
-	PathParams  []Param
-	QueryParams []Param
-	RequestBody reflect.Type
+	PathParams     []Param
+	QueryParams    []Param
+	RequestBody    reflect.Type
+	RequestBodyTag reflect.StructTag
 }
 
 // Param struct
 type Param struct {
-	Name        string
-	Type        reflect.Type
-	Description string
-	Required    bool
+	Name          string
+	Type          reflect.Type
+	Tag           reflect.StructTag
+	Required      bool
+	Description   string
+	JsonFieldName string
 }
 
 func (p *Param) String() string {
@@ -32,13 +35,35 @@ func (p *Param) String() string {
 // ToSwaggerJSON func
 func (p *Param) ToSwaggerJSON(position string) map[string]interface{} {
 	//typ, format := GoTypeToSwaggerType(p.Type)
-	t := GlobalTypeDefBuilder.ToSwaggerType(p.Type)
+	t := GlobalTypeDefBuilder.ToSwaggerType(p.Type, p.Tag)
+	name := p.Name
+	required := p.Required
+
+	if position == "query" || position == "path" {
+		// 如果是query和path参数，优先以json tag为name
+		//jsonName := strings.SplitN(p.Tag.Get("json"), ",", 2)[0]
+		if len(p.JsonFieldName) > 0 {
+			name = p.JsonFieldName
+		}
+	}
+
+	if t.Type == "array" {
+		// 如果是query参数，数组都是required=false
+		if position == "query" {
+			required = false
+		}
+	}
+
+	//https://swagger.io/docs/specification/data-models/data-types/
+
 	return map[string]interface{}{
-		"name":        p.Name,
-		"in":          position,
-		"format":      t.Format,
-		"required":    p.Required,
-		"type":        t.Type,
+		"name": name,
+		"in":   position,
+		"schema": map[string]string{
+			"type":   t.Type,
+			"format": t.Format,
+		},
+		"required":    required,
 		"description": p.Description,
 	}
 }
@@ -48,9 +73,9 @@ func addPathAndQueryParams(path string, inType reflect.Type, pathParams *[]Param
 	if requestType.Kind() == reflect.Ptr {
 		requestType = requestType.Elem()
 	}
-  if requestType.Name() == "Context" {
-    return
-  }
+	if requestType.Name() == "Context" {
+		return
+	}
 	if requestType.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("request type [%v] must be Struct, but is %v\n", requestType.Name(), requestType.Kind()))
 	}
@@ -59,40 +84,44 @@ func addPathAndQueryParams(path string, inType reflect.Type, pathParams *[]Param
 		typeField := requestType.Field(i)
 
 		if strings.ToUpper(typeField.Name) != "BODY" {
-      if (typeField.Anonymous) {
-        addPathAndQueryParams(path, typeField.Type, pathParams, queryParams)
-      } else {
-        param := Param{Name: typeField.Name, Type: typeField.Type, Required: typeField.Type.Kind() != reflect.Ptr, Description: typeField.Tag.Get("desc")}
+			if typeField.Anonymous {
+				addPathAndQueryParams(path, typeField.Type, pathParams, queryParams)
+			} else {
+				jsonName := strings.SplitN(typeField.Tag.Get("json"), ",", 2)[0]
+				param := Param{Name: typeField.Name, Type: typeField.Type, Required: typeField.Type.Kind() != reflect.Ptr,
+					Tag: typeField.Tag, JsonFieldName: jsonName, Description: typeField.Tag.Get("desc")}
 
-        if !param.Required {
-          param.Type = param.Type.Elem()
-        }
-        if containsIgnoreCase(pnames, typeField.Name) {
-          appendToSet(pathParams, &param)
-          // fmt.Printf("\tPath Params %s", param.String())
-        } else {
-          appendToSet(queryParams, &param)
-          // fmt.Printf("\tQuery Params %s", param.String())
-        }
-      }
+				if !param.Required {
+					param.Type = param.Type.Elem()
+				}
+				if containsIgnoreCase(pnames, typeField.Name) {
+					appendToSet(pathParams, &param)
+					// fmt.Printf("\tPath Params %s", param.String())
+				} else {
+					appendToSet(queryParams, &param)
+					// fmt.Printf("\tQuery Params %s", param.String())
+				}
+			}
 		}
 
 	}
 }
-func findRequestBody(inTypes []reflect.Type) reflect.Type {
+func findRequestBody(inTypes []reflect.Type) (reflect.Type, reflect.StructTag) {
 	var requestBody reflect.Type
+	var requestBodyTag reflect.StructTag
 	for _, inType := range inTypes {
 		requestType := inType
 		if requestType.Kind() == reflect.Ptr {
 			requestType = requestType.Elem()
 		}
-    if requestType.Name() == "Context" {
-      continue
-    }
+		if requestType.Name() == "Context" {
+			continue
+		}
 		for i := 0; i < requestType.NumField(); i++ {
 			typeField := requestType.Field(i)
 
 			if strings.ToUpper(typeField.Name) == "BODY" {
+				requestBodyTag = typeField.Tag
 				if requestBody != nil {
 					fmt.Sprintf("only last body will be show. %v ignored!\n", requestBody)
 				}
@@ -104,7 +133,7 @@ func findRequestBody(inTypes []reflect.Type) reflect.Type {
 			}
 		}
 	}
-	return requestBody
+	return requestBody, requestBodyTag
 }
 func appendToSet(set *[]Param, newOne *Param) {
 	for _, e := range *set {
@@ -125,10 +154,12 @@ func BuildRequestParam(path string, inTypes []reflect.Type) *RequestParam {
 	for _, inType := range inTypes {
 		addPathAndQueryParams(path, inType, &pathParams, &queryParams)
 	}
-	printParams(pathParams, queryParams)
 
-	requestBody := findRequestBody(inTypes)
-	return &RequestParam{PathParams: pathParams, QueryParams: queryParams, RequestBody: requestBody}
+	// TODO: 可以选择性的打印参数
+	// printParams(pathParams, queryParams)
+
+	requestBody, requestBodyTag := findRequestBody(inTypes)
+	return &RequestParam{PathParams: pathParams, QueryParams: queryParams, RequestBody: requestBody, RequestBodyTag: requestBodyTag}
 }
 
 func printParams(pathParams []Param, queryParams []Param) {
@@ -158,23 +189,27 @@ func printParams(pathParams []Param, queryParams []Param) {
 }
 
 // ToSwaggerJSON func
-func (req *RequestParam) ToSwaggerJSON() []map[string]interface{} {
-	var parameters []map[string]interface{}
+func (req *RequestParam) ParametersToSwaggerJSON() []map[string]interface{} {
+	var parameters = make([]map[string]interface{}, 0)
 	for _, pathParam := range req.PathParams {
 		parameters = append(parameters, pathParam.ToSwaggerJSON("path"))
 	}
 	for _, queryParam := range req.QueryParams {
 		parameters = append(parameters, queryParam.ToSwaggerJSON("query"))
 	}
-	if req.RequestBody != nil {
-	  swaggerType := GlobalTypeDefBuilder.Build(req.RequestBody)
-
-		parameters = append(parameters, map[string]interface{}{
-			"in":       "body",
-			"name":     "body",
-			"required": true,
-			"schema":   swaggerType.ToSwaggerJSON(),
-		})
-	}
 	return parameters
+}
+
+func (req *RequestParam) RequestBodyToSwaggerJSON() map[string]interface{} {
+	swaggerType := GlobalTypeDefBuilder.Build(req.RequestBody, req.RequestBodyTag)
+
+	return map[string]interface{}{
+		"description": req.RequestBodyTag.Get("desc"),
+		"required":    true,
+		"content": map[string]any{
+			"application/json": map[string]any{
+				"schema": swaggerType.ToSwaggerJSON(),
+			},
+		},
+	}
 }

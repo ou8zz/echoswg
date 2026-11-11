@@ -4,13 +4,12 @@ import (
 	"net/http"
   "strings"
 
-  "github.com/labstack/echo/v5"
+  "github.com/labstack/echo/v4"
 )
 
-// GenApiDoc generates an OpenAPI 3.2.0 document.
-// Spec: https://spec.openapis.org/oas/v3.2.0.html
-func GenApiDoc(title, description, version string) func(*echo.Context) error {
-  return func(c *echo.Context) error {
+// GenApiDoc generate v3 api https://swagger.io/docs/specification/basic-structure/
+func GenApiDoc(title, description, version string) func(echo.Context) error {
+  return func(c echo.Context) error {
     var tags []map[string]string
     for tag, desc := range SwaggerTags {
       tags = append(tags, map[string]string{
@@ -24,14 +23,15 @@ func GenApiDoc(title, description, version string) func(*echo.Context) error {
       docVersion = "0.0.0"
     }
     return c.JSON(http.StatusOK, map[string]interface{}{
-      "openapi": "3.2.0",
+      "servers": []map[string]string{
+        {"url": "/"},
+      },
+      "host":    c.Request().Host,
+      "openapi": "3.0.0",
       "info": map[string]interface{}{
         "title":       title,
         "description": description,
         "version":     docVersion,
-      },
-      "servers": []map[string]string{
-        {"url": "/"},
       },
       "paths": SwaggerPaths,
 

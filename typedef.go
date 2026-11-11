@@ -108,7 +108,9 @@ func inspectStructType(inputType reflect.Type, properties map[string]interface{}
 
 		propertyJson := swaggerType.ToSwaggerJSON()
 
-		if description := descriptionFromTag(field.Tag); len(description) > 0 {
+		description := field.Tag.Get("desc")
+		description = strings.TrimSpace(description)
+		if len(description) > 0 {
 			propertyJson["description"] = description
 		}
 

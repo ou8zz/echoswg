@@ -1,13 +1,13 @@
-module github.com/yb7/echoswg
+module github.com/ou8zz/echoswg
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.21.0
 	github.com/gorilla/schema v1.1.0
-	github.com/labstack/echo/v5 v5.1.1
+	github.com/labstack/echo/v5 v5.4.4
 	github.com/labstack/gommon v0.4.2
 	github.com/olekukonko/tablewriter v1.1.2
 )
@@ -27,8 +27,8 @@ require (
 	github.com/olekukonko/ll v0.1.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	golang.org/x/crypto v0.47.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 )

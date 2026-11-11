@@ -59,7 +59,7 @@ import (
     "your/module/service"
     "your/module/util"
 
-    "github.com/yb7/echoswg"
+    "github.com/ou8zz/echoswg"
 )
 
 type OrderController struct{}
@@ -367,7 +367,7 @@ import (
 
     "github.com/labstack/echo/v5/middleware"
     "github.com/yb7/alilog"
-    "github.com/yb7/echoswg"
+    "github.com/ou8zz/echoswg"
 )
 
 func main() {
@@ -1167,7 +1167,7 @@ import (
     "your/module/service"
     "your/module/util"
 
-    "github.com/yb7/echoswg"
+    "github.com/ou8zz/echoswg"
 )
 
 type DemoController struct{}
@@ -1213,7 +1213,7 @@ import (
 
     "github.com/labstack/echo/v5/middleware"
     "github.com/yb7/alilog"
-    "github.com/yb7/echoswg"
+    "github.com/ou8zz/echoswg"
 )
 
 func main() {
@@ -1273,7 +1273,7 @@ require (
     github.com/redis/rueidis v1.0.69
     github.com/spf13/viper v1.19.0
     github.com/yb7/alilog v1.1.12
-    github.com/yb7/echoswg v0.7.3
+    github.com/ou8zz/echoswg v0.7.3
 )
 ```
 
@@ -1396,7 +1396,7 @@ import (
     "your/module/service"
     "your/module/util"
 
-    "github.com/yb7/echoswg"
+    "github.com/ou8zz/echoswg"
 )
 
 type DemoController struct{}

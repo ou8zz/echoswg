@@ -1,8 +1,9 @@
 package echoswg
 
 import (
-	"reflect"
 	"github.com/labstack/echo/v5"
+	"github.com/labstack/gommon/log"
+	"reflect"
 )
 
 type ApiGroup interface {
@@ -68,15 +69,20 @@ func (g *internalApiGroup) wrapper(method string, url string, actions []interfac
 	var handlers []interface{}
 	//internalHttpTraceEnabled := HttpTraceEnabled
 	for _, a := range actions {
-		if reflect.TypeOf(a).Name() == "PathSchemaOption" {
+		if reflect.TypeOf(a).Kind() == reflect.String {
+			if len(pathDef.Summary) == 0 {
+				pathDef.Summary = a.(string)
+			} else {
+				pathDef.Description = a.(string)
+			}
+		} else if reflect.TypeOf(a).Name() == "PathSchemaOption" {
 			opt, _ := a.(PathSchemaOption)
 			opt(pathDef)
 		} else if reflect.TypeOf(a).Kind() == reflect.Func {
 			handlers = append(handlers, a)
-		} 
-		// else {
-		// 	log.Fatalf("faild to handle param %v", a)
-		// }
+		} else {
+			log.Fatalf("faild to handle param %v", a)
+		}
 	}
 	if len(pathDef.OperationId) > 0 {
 		pathDef.Description = "`" + pathDef.OperationId + "` \n\n" + pathDef.Description

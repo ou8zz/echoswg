@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net/http"
 	"reflect"
 	"runtime"
 	"strings"
@@ -95,10 +94,8 @@ func BuildEchoHandler(fullRequestPath string, config HandlerConfig, handlers []i
 		}
 		if len(out) > 1 {
 			return logError(fmt.Errorf("return more then one data value is not supported: %s", runtime.FuncForPC(reflect.ValueOf(lastHandler).Pointer()).Name()))
-		} else if len(out) == 0 {
-			return logError(c.NoContent(http.StatusOK))
 		} else {
-			return logError(c.JSON(http.StatusOK, out[0].Interface()))
+			return logError(respJson(c, out))
 		}
 	}
 }

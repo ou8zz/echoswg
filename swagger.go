@@ -57,7 +57,7 @@ func BuildSwaggerPath(pathDefine *SwaggerPathDefine) *SwaggerPath {
 		"description": "successful operation",
 	}
 	if outType != nil {
-		swaggerType := GlobalTypeDefBuilder.Build(outType, "")
+		swaggerType := GlobalTypeDefBuilder.Build(genRespObjType(outType), "")
 		successResponse = map[string]interface{}{
 			"description": "successful operation",
 			"content": map[string]any{
